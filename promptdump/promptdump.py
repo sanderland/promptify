@@ -19,18 +19,27 @@ def parse_exclusion_file(file_path: str) -> set[str]:
 
 
 def is_excluded(path: str, exclusion_patterns: set[str]) -> bool:
+    path_parts = path.split(os.sep)
+    
     for pattern in exclusion_patterns:
         if pattern.startswith("/") and pattern.endswith("/"):
-            if path.startswith(pattern[1:]) or path == pattern[1:-1]:
+            # Pattern like "/dir/" - matches only at root level
+            dir_name = pattern[1:-1]
+            if path.startswith(dir_name + os.sep) or path == dir_name:
                 return True
         elif pattern.endswith("/"):
-            if path.startswith(pattern) or path == pattern[:-1]:
+            # Pattern like "dir/" - matches directory at any level
+            dir_name = pattern[:-1]
+            if dir_name in path_parts:
                 return True
         elif pattern.startswith("/"):
-            if path == pattern[1:] or path.startswith(pattern[1:] + os.sep):
+            # Pattern like "/file" - matches only at root level
+            file_name = pattern[1:]
+            if path == file_name or path.startswith(file_name + os.sep):
                 return True
         else:
-            if fnmatch.fnmatch(path, pattern) or any(fnmatch.fnmatch(part, pattern) for part in path.split(os.sep)):
+            # Pattern without slashes - use fnmatch for files/dirs at any level
+            if fnmatch.fnmatch(path, pattern) or any(fnmatch.fnmatch(part, pattern) for part in path_parts):
                 return True
     return False
 
